@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="it" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Retro Image Processor – p5.js</title>
+
+  <!-- p5.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Topbar -->
+  <header class="topbar">
+    <button id="menuToggle" aria-label="Apri/chiudi impostazioni">☰</button>
+    <h1>Retro Image Processor</h1>
+    <div class="topbar-right">
+      <button id="themeToggle" aria-label="Cambia tema" title="Cambia tema">🌓</button>
+    </div>
+  </header>
+
+  <div id="app">
+    <aside id="sidebar" aria-label="Impostazioni">
+      <h1>Impostazioni</h1>
+      <div class="sub">Dithering, palette retro ed effetti</div>
+
+      <details open>
+        <summary>Ingresso</summary>
+        <div class="section">
+          <div class="row">
+            <span class="label">Immagine</span>
+            <input id="fileImg" type="file" accept="image/*">
+          </div>
+        </div>
+      </details>
+
+      <details open>
+        <summary>Palette</summary>
+        <div class="section">
+          <div class="row">
+            <span class="label">Tipo</span>
+            <select id="uiPalette">
+              <option value="0">CGA8</option>
+              <option value="1" selected>EGA16</option>
+              <option value="2">ZX Spectrum</option>
+              <option value="3">GameBoy</option>
+              <option value="4">C64</option>
+            </select>
+          </div>
+          <div class="row">
+            <span class="label">Contrasto</span>
+            <input id="uiContrast" type="range" min="1.0" max="2.0" step="0.1" value="1.4">
+            <output id="uiContrastVal">1.4</output>
+          </div>
+        </div>
+      </details>
+
+      <details open>
+        <summary>Dithering</summary>
+        <div class="section">
+          <div class="row">
+            <span class="label">Algoritmo</span>
+            <select id="uiDither">
+              <option value="0">Floyd–Steinberg</option>
+              <option value="1">Ordered (Bayer 8×8)</option>
+              <option value="2">Random</option>
+              <option value="3">Jarvis</option>
+              <option value="4">Atkinson</option>
+              <option value="5">Albie</option>
+              <option value="6">Average</option>
+            </select>
+          </div>
+          <div class="row">
+            <span class="label">Block size</span>
+            <input id="uiBlock" type="range" min="1" max="8" step="1" value="1">
+            <output id="uiBlockVal">1</output>
+          </div>
+          <div class="row">
+            <label><input id="uiTemporal" type="checkbox"> Dithering temporale</label>
+          </div>
+        </div>
+      </details>
+
+      <details open>
+        <summary>Effetti CRT</summary>
+        <div class="section">
+          <div class="row">
+            <label><input id="uiScanlines" type="checkbox" checked> Scanlines</label>
+          </div>
+          <div class="row">
+            <span class="label">Intensità</span>
+            <input id="uiScanInt" type="range" min="0.1" max="1.0" step="0.1" value="0.7">
+            <output id="uiScanIntVal">0.7</output>
+          </div>
+          <div class="row">
+            <span class="label">Color bleed</span>
+            <input id="uiBleed" type="range" min="0" max="0.5" step="0.01" value="0.3">
+            <output id="uiBleedVal">0.30</output>
+          </div>
+        </div>
+      </details>
+
+      <details open>
+        <summary>Export</summary>
+        <div class="section">
+          <div class="row">
+            <span class="label">PNG – Scala</span>
+            <select id="pngScale">
+              <option value="1">1×</option>
+              <option value="2">2×</option>
+              <option value="4">4×</option>
+            </select>
+          </div>
+          <div class="row">
+            <label><input id="overlayOnly" type="checkbox" disabled> Solo overlay (prep.)</label>
+          </div>
+          <div class="row">
+            <button id="btnPng">📷 Salva PNG</button>
+          </div>
+        </div>
+      </details>
+    </aside>
+
+    <main id="stage">
+      <div id="stageToolbar">
+        <div class="btnbar">
+          <span id="infoSource">Sorgente: —</span>
+        </div>
+        <div class="right"><span id="infoFps">FPS: —</span></div>
+      </div>
+      <div id="canvasWrap" aria-label="Area canvas 4:5"></div>
+    </main>
+  </div>
+
+  <!-- Toggle sidebar su mobile -->
+  <script>
+    (function () {
+      const btn = document.getElementById('menuToggle');
+      const sidebar = document.getElementById('sidebar');
+      if (!btn || !sidebar) return;
+      btn.addEventListener('click', () => {
+        sidebar.classList.toggle('open');
+        document.body.classList.toggle('no-scroll');
+      });
+    })();
+  </script>
+
+  <script src="sketch.js" defer></script>
+</body>
+</html>
