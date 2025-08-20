@@ -13,24 +13,44 @@
 <body>
   <!-- Topbar -->
   <header class="topbar">
-    <button id="menuToggle" aria-label="Apri/chiudi impostazioni">☰</button>
+    <button id="menuToggle" aria-label="Apri/chiudi pannello">☰</button>
     <h1>Retro Image Processor</h1>
     <div class="topbar-right">
-      <button id="themeToggle" aria-label="Cambia tema" title="Cambia tema">🌓</button>
+      <button id="themeToggle" aria-label="Tema">🌓</button>
     </div>
   </header>
 
   <div id="app">
-    <aside id="sidebar" aria-label="Impostazioni">
+    <aside id="sidebar" aria-label="Pannello comandi">
       <h1>Impostazioni</h1>
-      <div class="sub">Dithering, palette retro ed effetti</div>
 
       <details open>
-        <summary>Ingresso</summary>
+        <summary>Input</summary>
         <div class="section">
           <div class="row">
-            <span class="label">Immagine</span>
+            <span class="label">File</span>
             <input id="fileImg" type="file" accept="image/*">
+          </div>
+          <div class="row muted">Oppure trascina sullo stage →</div>
+        </div>
+      </details>
+
+      <details open>
+        <summary>Inquadratura (4:5)</summary>
+        <div class="section">
+          <div class="row">
+            <span class="label">Zoom</span>
+            <input id="uiZoom" type="range" min="1" max="3" step="0.001" value="1" />
+            <output id="uiZoomVal">1.00×</output>
+          </div>
+          <div class="row">
+            <button id="btnFitW" title="Adatta in larghezza">Fit larg.</button>
+            <button id="btnFitH" title="Adatta in altezza">Fit alt.</button>
+            <button id="btnResetView" title="Centra e zoom minimo">Reset</button>
+          </div>
+          <div class="row">
+            <label><input id="uiOverlay" type="checkbox"> Guida</label>
+            <span class="muted">Doppio click = reset • Shift + doppio click = fit alternativo</span>
           </div>
         </div>
       </details>
@@ -41,11 +61,18 @@
           <div class="row">
             <span class="label">Tipo</span>
             <select id="uiPalette">
-              <option value="0">CGA8</option>
-              <option value="1" selected>EGA16</option>
+              <option value="0">CGA 8</option>
+              <option value="1" selected>EGA 16</option>
               <option value="2">ZX Spectrum</option>
-              <option value="3">GameBoy</option>
+              <option value="3">Game Boy</option>
               <option value="4">C64</option>
+              <option value="5">NES 16</option>
+              <option value="6">Apple II 6</option>
+              <option value="7">Amiga 12</option>
+              <option value="8">Teletext 8</option>
+              <option value="9">Solarized 16</option>
+              <option value="10">Vaporwave 8</option>
+              <option value="11">Neon Pop 8</option>
             </select>
           </div>
           <div class="row">
@@ -57,13 +84,13 @@
       </details>
 
       <details open>
-        <summary>Dithering</summary>
+        <summary>Dither</summary>
         <div class="section">
           <div class="row">
             <span class="label">Algoritmo</span>
             <select id="uiDither">
               <option value="0">Floyd–Steinberg</option>
-              <option value="1">Ordered (Bayer 8×8)</option>
+              <option value="1">Ordered (Bayer)</option>
               <option value="2">Random</option>
               <option value="3">Jarvis</option>
               <option value="4">Atkinson</option>
@@ -72,18 +99,18 @@
             </select>
           </div>
           <div class="row">
-            <span class="label">Block size</span>
+            <span class="label">Scala</span>
             <input id="uiBlock" type="range" min="1" max="8" step="1" value="1">
             <output id="uiBlockVal">1</output>
           </div>
           <div class="row">
-            <label><input id="uiTemporal" type="checkbox"> Dithering temporale</label>
+            <label><input id="uiTemporal" type="checkbox"> Temporale</label>
           </div>
         </div>
       </details>
 
       <details open>
-        <summary>Effetti CRT</summary>
+        <summary>CRT</summary>
         <div class="section">
           <div class="row">
             <label><input id="uiScanlines" type="checkbox" checked> Scanlines</label>
@@ -94,7 +121,7 @@
             <output id="uiScanIntVal">0.7</output>
           </div>
           <div class="row">
-            <span class="label">Color bleed</span>
+            <span class="label">Bleed</span>
             <input id="uiBleed" type="range" min="0" max="0.5" step="0.01" value="0.3">
             <output id="uiBleedVal">0.30</output>
           </div>
@@ -105,18 +132,19 @@
         <summary>Export</summary>
         <div class="section">
           <div class="row">
-            <span class="label">PNG – Scala</span>
+            <span class="label">PNG</span>
             <select id="pngScale">
               <option value="1">1×</option>
               <option value="2">2×</option>
               <option value="4">4×</option>
             </select>
+            <button id="btnPng">Salva</button>
           </div>
+          <hr class="sep">
           <div class="row">
-            <label><input id="overlayOnly" type="checkbox" disabled> Solo overlay (prep.)</label>
-          </div>
-          <div class="row">
-            <button id="btnPng">📷 Salva PNG</button>
+            <span class="label">Rapidi</span>
+            <button id="btn1080" title="1080×1350 (IG portrait)">1080×1350</button>
+            <button id="btn2160" title="2160×2700 (2×)">2160×2700</button>
           </div>
         </div>
       </details>
