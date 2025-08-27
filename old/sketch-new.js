@@ -1,4 +1,7 @@
 // Retro Image Processor – p5.js
+// (build senza export MP4/GIF: ffmpeg rimosso, solo PNG + WebM)
+
+// Retro Image Processor – p5.js
 // Step 1–4–5: sorgenti (image/video/camera) • registrazione WebM • performance+worker
 // • selezione camera + torcia + stato + timer REC
 // • export MP4/GIF (beta) con ffmpeg.wasm opzionale
@@ -109,25 +112,6 @@
   let isRecording = false, recT0 = 0, recTimerHandle = null;
   let lastRecordingBlob = null;
 
-  // ——— Stato pulsanti Export ———
-function updateExportUI() {
-  const hasRecording = !!lastRecordingBlob;
-  const id = (x)=>document.getElementById(x);
-  const bMp4 = id('btnToMp4');
-  const bGif = id('btnToGif');
-  const bWebM = id('btnExportWebM'); // se non esiste, ignorato
-  const aRec  = id('recDownload');   // link “Scarica ultima registrazione”
-  const aVid  = id('vidDownload');   // link che mostri dopo la conversione
-
-  if (bMp4)  bMp4.disabled  = !hasRecording;
-  if (bGif)  bGif.disabled  = !hasRecording;
-  if (bWebM) bWebM.disabled = !hasRecording;
-
-  if (aRec) aRec.style.display = hasRecording ? 'inline' : 'none';
-  if (aVid) aVid.style.display = 'none';
-}
-
-
   // ==== Prestazioni ====
   let qualityLive = 0.85;        // 0.5..1.0 (solo live)
   let processEvery = 2;          // elabora ogni N frame in live
@@ -160,13 +144,13 @@ function updateExportUI() {
   let currentPalette = palettes[colorModeIdx];
   let paletteRGB = hexPaletteToRGB(currentPalette);
 
-  let blockSize = 1.0;
+  let blockSize = 1;
   let ditherType = 0;
-  let scanlines = false;
+  let scanlines = true;
   let temporalDither = false;
   let contrastBoost = 1.4;
   let scanlineIntensity = 0.7;
-  let colorBleed = 0.0;
+  let colorBleed = 0.3;
   let overlayOn = false;
 
   // ==== Vista ====
@@ -206,7 +190,6 @@ function updateExportUI() {
       bindDnD(p);
       updateRecUI(false);
       updatePerfInfo();
-      updateExportUI();
       // prime elenco device (non tutti i browser mostrano i label prima del consenso)
       safeEnumerateDevices();
     };
@@ -373,18 +356,6 @@ function updateExportUI() {
       els.btnFitW?.addEventListener('click', ()=>{ fitWidth(p); markDirty(); });
       els.btnFitH?.addEventListener('click', ()=>{ fitHeight(p); markDirty(); });
     }
-
-    // subito dopo aver agganciato i listener UI:
-els.uiScanlines.checked = scanlines;
-els.uiScanInt.value = scanlineIntensity;
-els.uiScanIntVal.textContent = scanlineIntensity.toFixed(1);
-
-els.uiBleed.value = colorBleed;
-els.uiBleedVal.textContent = colorBleed.toFixed(2);
-
-// chiedi un re-render con i nuovi default
-if (typeof markDirty === 'function') markDirty();
-
 
     function bindPointer(p, cnv){
       cnv.mousePressed(()=>{ if (!hasSource()) return; view.dragging=true; els.canvasWrap?.classList.add('dragging'); view.lastX=p.mouseX; view.lastY=p.mouseY; });
@@ -701,16 +672,8 @@ if (typeof markDirty === 'function') markDirty();
 
     // === Processing (main thread) ===
     function processOnce(p, quality=1.0){
-   // evita valori troppo bassi e limita l’oversampling a 2× del canvas
-const MIN_BLOCK = 0.2;       // ciò che vuoi tu
-const MAX_OVERSAMPLE = 2.0;  // non superare 2× la dimensione del canvas
-
-const eff = Math.max(MIN_BLOCK, blockSize);
-const targetW = (p.width  / (eff * 2)) * getCurrentQuality();
-const targetH = (p.height / (eff * 2)) * getCurrentQuality();
-
-const newW = Math.max(1, Math.floor(Math.min(p.width  * MAX_OVERSAMPLE, targetW)));
-const newH = Math.max(1, Math.floor(Math.min(p.height * MAX_OVERSAMPLE, targetH)));
+      const newW = Math.max(1, Math.floor(p.width /(blockSize*2) * quality));
+      const newH = Math.max(1, Math.floor(p.height/(blockSize*2) * quality));
       ensureLowBuffer(p, newW, newH);
       lowBuffer.clear();
       lowBuffer.image(viewBuffer, 0, 0, newW, newH);
@@ -944,10 +907,6 @@ const newH = Math.max(1, Math.floor(Math.min(p.height * MAX_OVERSAMPLE, targetH)
         els.recDownload.download = 'retro_recording.webm';
         els.recDownload.style.display = 'inline';
       }
-
-      updateExportUI();
-
-
       if (micStream){ micStream.getTracks().forEach(t=>t.stop()); micStream=null; }
       stopRecTimer();
     };
@@ -971,179 +930,20 @@ const newH = Math.max(1, Math.floor(Math.min(p.height * MAX_OVERSAMPLE, targetH)
     if (recTimerHandle){ clearInterval(recTimerHandle); recTimerHandle = null; }
   }
 
- // ==== ffmpeg.wasm (beta) – LOCAL, senza new URL =========================
-
-// Carica uno script e restituisce un errore leggibile se fallisce
-function loadScript(src){
-  return new Promise((resolve, reject)=>{
-    const s = document.createElement('script');
-    s.src = src; s.async = true;
-    s.onload = resolve;
-    s.onerror = () => reject(new Error(`Impossibile caricare script: ${src}`));
-    document.head.appendChild(s);
-  });
-}
-
+  
+// ==== Export video disattivato (niente ffmpeg) ====
+// Stub di stato per la UI
 function setFfmpegStatus(msg){
-  if (els.ffmpegStatus) els.ffmpegStatus.textContent = `ffmpeg: ${msg}`;
+  if (els && els.ffmpegStatus) els.ffmpegStatus.textContent = msg || 'MP4/GIF disattivati';
 }
-
-// Normalizza una base *senza* usare new URL (evita "Invalid base URL")
-// - se base inizia con "http" → la lasciamo
-// - se base inizia con "/"   → la attacchiamo a location.origin
-// - altrimenti               → la rendiamo relativa alla cartella della pagina
-function normalizeBase(base){
-  const page = window.location.href.split('#')[0].split('?')[0];
-  const dir  = page.slice(0, page.lastIndexOf('/')+1);
-  let abs = (base || '').trim();
-  if (!abs) abs = 'libs/';
-
-  if (/^https?:\/\//i.test(abs)) {
-    // niente
-  } else if (abs.startsWith('/')) {
-    abs = window.location.origin.replace(/\/+$/,'') + '/' + abs.replace(/^\/+/,'');
-  } else {
-    abs = dir + abs;
-  }
-  if (!abs.endsWith('/')) abs += '/';
-  // elimina eventuali // doppi (ma non quelli di "https://")
-  abs = abs.replace(/([^:]\/)\/+/g, '$1');
-  return abs;
-}
-
-// Dove cercare i file locali (in quest'ordine). Niente CDN.
-const LOCAL_BASES = ['libs/', '/libs/'];
-
-// Cache dell'istanza ffmpeg
-let __ffmpegCache = null;
-
-async function ensureFFmpeg(){
-  if (__ffmpegCache) return __ffmpegCache;
-
-  let lastErr = null;
-
-  for (const b of LOCAL_BASES){
-    const base = normalizeBase(b);
-    try {
-      setFfmpegStatus(`caricamento libreria… (${base})`);
-      // 1) carica il bundle UMD
-      await loadScript(base + 'ffmpeg.min.js');
-      if (!window.FFmpeg || !window.FFmpeg.createFFmpeg){
-        throw new Error('createFFmpeg non esposto (bundle ffmpeg.min.js non valido)');
-      }
-
-      const { createFFmpeg, fetchFile } = window.FFmpeg;
-      // 2) inizializza con core dalla *stessa* cartella
-      const corePath = base + 'ffmpeg-core.js';
-      const ffmpeg = createFFmpeg({ log: true, corePath });
-
-      ffmpeg.setProgress(({ ratio })=>{
-        if (ratio > 0 && ratio <= 1) setFfmpegStatus(`conversione… ${Math.round(ratio*100)}%`);
-      });
-
-      setFfmpegStatus(`inizializzazione… (${base})`);
-      await ffmpeg.load(); // carica .worker e .wasm automaticamente dalla stessa base
-      setFfmpegStatus(`pronto (${base})`);
-
-      __ffmpegCache = { ffmpeg, fetchFile, baseOk: base };
-      return __ffmpegCache;
-    } catch(e){
-      lastErr = e; // prova la prossima base
-    }
-  }
-
-  setFfmpegStatus('mancano i file locali');
-  throw new Error(
-    (lastErr?.message || 'FFmpeg non caricato') +
-    '\nAttesi nella cartella accanto a index.html:\n' +
-    '  libs/ffmpeg.min.js\n  libs/ffmpeg-core.js\n  libs/ffmpeg-core.wasm\n  libs/ffmpeg-core.worker.js'
-  );
-}
-
-// Conversione dell’ultima registrazione (lastRecordingBlob) in MP4 o GIF
+// Stub di conversione: sempre disattiva
 async function convertLastRecording(kind){
-  if (!lastRecordingBlob){
-    alert('Non c’è nessuna registrazione. Premi REC → Stop prima.');
+  if (kind === 'mp4' || kind === 'gif'){
+    setFfmpegStatus('MP4/GIF disattivati in questa build');
+    alert('Export video disattivato: usa WebM oppure PNG.');
     return;
   }
-
-  setFfmpegStatus('preparazione input…');
-  const { ffmpeg, fetchFile } = await ensureFFmpeg();
-
-  // pulizia FS virtuale
-  for (const f of ['input.webm','palette.png','output.mp4','output.gif']){
-    try { ffmpeg.FS('unlink', f); } catch {}
-  }
-
-  ffmpeg.FS('writeFile', 'input.webm', await fetchFile(lastRecordingBlob));
-
-  try{
-    if (kind === 'mp4'){
-      setFfmpegStatus('codifica MP4…');
-      // 1) prova H.264 (libx264)
-      try{
-        await ffmpeg.run(
-          '-y','-i','input.webm',
-          '-c:v','libx264','-pix_fmt','yuv420p','-preset','veryfast','-movflags','+faststart',
-          'output.mp4'
-        );
-      } catch(e1){
-        // 2) fallback MPEG-4 Part 2
-        console.warn('libx264 non disponibile, fallback mpeg4:', e1);
-        setFfmpegStatus('fallback MPEG-4…');
-        await ffmpeg.run(
-          '-y','-i','input.webm',
-          '-c:v','mpeg4','-q:v','4','-pix_fmt','yuv420p',
-          'output.mp4'
-        );
-      }
-
-      const data = ffmpeg.FS('readFile', 'output.mp4');
-      const url  = URL.createObjectURL(new Blob([data.buffer], { type:'video/mp4' }));
-      if (els.vidDownload){
-        els.vidDownload.href = url;
-        els.vidDownload.download = 'output.mp4';
-        els.vidDownload.style.display = 'inline';
-        // avvio download automatico (facoltativo)
-        // els.vidDownload.click();
-      }
-      setFfmpegStatus(`ok • ${(data.length/1e6).toFixed(2)} MB`);
-    } else {
-      // GIF con palette per qualità migliore
-      setFfmpegStatus('palette GIF…');
-      await ffmpeg.run(
-        '-y','-i','input.webm',
-        '-vf','fps=12,scale=540:-1:flags=lanczos,palettegen=stats_mode=full',
-        'palette.png'
-      );
-      setFfmpegStatus('codifica GIF…');
-      await ffmpeg.run(
-        '-y','-i','input.webm','-i','palette.png',
-        '-lavfi','fps=12,scale=540:-1:flags=lanczos [x]; [x][1:v] paletteuse=dither=bayer:bayer_scale=5',
-        '-loop','0',
-        'output.gif'
-      );
-
-      const data = ffmpeg.FS('readFile', 'output.gif');
-      const url  = URL.createObjectURL(new Blob([data.buffer], { type:'image/gif' }));
-      if (els.vidDownload){
-        els.vidDownload.href = url;
-        els.vidDownload.download = 'output.gif';
-        els.vidDownload.style.display = 'inline';
-      }
-      setFfmpegStatus(`ok • ${(data.length/1e6).toFixed(2)} MB`);
-    }
-  } catch(err){
-    console.error('FFmpeg error:', err);
-    setFfmpegStatus('errore');
-    throw new Error(err?.message || String(err));
-  } finally {
-    for (const f of ['input.webm','palette.png','output.mp4','output.gif']){
-      try { ffmpeg.FS('unlink', f); } catch {}
-    }
-  }
 }
-// =======================================================================
 
 
 
@@ -1172,3 +972,13 @@ async function convertLastRecording(kind){
     return sum/(c||1);
   }
 })();
+
+// Disabilita pulsanti MP4/GIF perché non supportati in questa build
+document.addEventListener('DOMContentLoaded', ()=>{
+  const bMp4 = document.getElementById('btnToMp4');
+  const bGif = document.getElementById('btnToGif');
+  if (bMp4){ bMp4.disabled = true; bMp4.title = 'MP4 disattivato'; }
+  if (bGif){ bGif.disabled = true; bGif.title = 'GIF disattivato'; }
+  const st = document.getElementById('ffmpegStatus');
+  if (st){ st.textContent = 'ffmpeg: disattivato'; }
+});

@@ -84,3 +84,8 @@ select, input[type="file"], input[type="text"], input[type="range"], button, inp
 
 /* Utility */
 .muted{ color: var(--muted); font-size: 12px; }
+
+.subhead { font-weight: 600; margin: .25rem 0 .5rem; opacity: .9; }
+#sidebar .row .label { width: 100px; display: inline-block; opacity: .8; }
+#sidebar .row button + button { margin-left: .4rem; }
+#vidDownload, #recDownload { text-decoration: underline; cursor: pointer; }

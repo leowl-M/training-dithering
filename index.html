@@ -17,6 +17,7 @@
     <h1>Retro Image Processor</h1>
     <div class="topbar-right">
       <button id="themeToggle" aria-label="Tema">🌓</button>
+      <button id="btnSnap" title="Scatta foto (da live/video)" disabled>Scatta foto</button>
     </div>
   </header>
 
@@ -38,31 +39,25 @@
           </div>
 
           <div class="row">
-            <span class="label">Camera</span>
             <div class="row">
-              <span class="label">Seleziona</span>
+              <span class="label">Camera</span>
               <select id="camSelect" style="max-width: 220px;"></select>
-              <button id="btnCamRefresh" title="Aggiorna elenco">↻</button>
-              <button id="btnTorch" title="Torcia" disabled>Torcia</button>
-            </div>
-            <div class="row muted" id="camInfo">—</div>
-            
+              <!-- <button id="btnCamRefresh" title="Aggiorna elenco">↻</button>
+              <button id="btnTorch" title="Torcia" disabled>Torcia</button> -->
+            </div>            
             <button id="btnCamStart" title="Apri fotocamera">Apri</button>
             <button id="btnCamStop" title="Chiudi fotocamera" disabled>Chiudi</button>
-            <button id="btnSnap" title="Scatta foto (da live/video)" disabled>Scatta foto</button>
           </div>
 
-          <div class="row muted">Su mobile puoi usare anche gli input nativi ↓</div>
+          <!-- <div class="row muted">Su mobile puoi usare anche gli input nativi ↓</div>
           <div class="row">
             <input id="capturePhoto" type="file" accept="image/*" capture="environment">
             <input id="captureVideo" type="file" accept="video/*" capture="environment">
-          </div>
-
-          <div class="row muted">Oppure trascina sullo stage →</div>
+          </div> --> 
         </div>
       </details>
 
-      <details open>
+      <details closed>
         <summary>Inquadratura (4:5)</summary>
         <div class="section">
           <div class="row">
@@ -77,12 +72,11 @@
           </div>
           <div class="row">
             <label><input id="uiOverlay" type="checkbox"> Guida</label>
-            <span class="muted">Doppio click = reset • Shift + doppio click = fit alternativo</span>
           </div>
         </div>
       </details>
 
-      <details open>
+      <details closed>
         <summary>Palette</summary>
         <div class="section">
           <div class="row">
@@ -110,7 +104,7 @@
         </div>
       </details>
 
-      <details open>
+      <details closed>
         <summary>Dither</summary>
         <div class="section">
           <div class="row">
@@ -127,7 +121,7 @@
           </div>
           <div class="row">
             <span class="label">Scala</span>
-            <input id="uiBlock" type="range" min="1" max="8" step="1" value="1">
+            <input id="uiBlock" type="range" min="0.2" max="8" step="0.1" value="1">
             <output id="uiBlockVal">1</output>
           </div>
           <div class="row">
@@ -136,11 +130,11 @@
         </div>
       </details>
 
-      <details open>
+      <details closed>
         <summary>CRT</summary>
         <div class="section">
           <div class="row">
-            <label><input id="uiScanlines" type="checkbox" checked> Scanlines</label>
+            <label><input id="uiScanlines" type="checkbox"> Scanlines</label>
           </div>
           <div class="row">
             <span class="label">Intensità</span>
@@ -155,7 +149,7 @@
         </div>
       </details>
 
-      <details open>
+      <details closed>
         <summary>Registrazione</summary>
         <div class="section">
           <div class="row">
@@ -184,12 +178,12 @@
               <option value="24">24</option>
               <option value="60">60</option>
             </select>
-            <a id="recDownload" class="muted" style="margin-left:.75rem; display:none;" download="retro_recording.webm">Scarica ultima registrazione</a>
+            <button id="recDownload" class="muted" style="display:none;" download="retro_recording.webm">Scarica ultima registrazione</button>
           </div>
         </div>
       </details>
 
-      <details open>
+      <details closed>
         <summary>Prestazioni</summary>
         <div class="section">
           <div class="row">
@@ -225,38 +219,31 @@
       </details>
 
 
-      <details open>
-        <summary>Export</summary>
-        <div class="section">
-          <div class="row">
-            <span class="label">PNG</span>
-            <select id="pngScale">
-              <option value="1">1×</option>
-              <option value="2">2×</option>
-              <option value="4">4×</option>
-            </select>
-            <button id="btnPng">Salva</button>
-          </div>
-          <hr class="sep">
-          <div class="row">
-            <span class="label">Rapidi</span>
-            <button id="btn1080" title="1080×1350 (IG portrait)">1080×1350</button>
-            <button id="btn2160" title="2160×2700 (2×)">2160×2700</button>
-          </div>
-        </div>
-      </details>
+      <!-- Export (unificato) -->
+<details closed>
+  <summary>Export</summary>
+  <div class="section">
 
-      <details open>
-        <summary>Export video (beta)</summary>
-        <div class="section">
-          <div class="row">
-            <button id="btnToMp4" title="Converti ultima registrazione in MP4 (H.264)">MP4 (H.264)</button>
-            <button id="btnToGif" title="Converti ultima registrazione in GIF">GIF</button>
-            <a id="vidDownload" class="muted" style="margin-left:.75rem; display:none;" download>Scarica</a>
-          </div>
-          <div class="row muted" id="ffmpegStatus">ffmpeg: non caricato</div>
-        </div>
-      </details>
+    <!-- IMMAGINI -->
+    <div class="subhead">📷 Immagini</div>
+    <div class="row">
+      <span class="label">PNG (scala)</span>
+      <select id="pngScale">
+        <option value="1">1×</option>
+        <option value="2">2×</option>
+        <option value="4">4×</option>
+      </select>
+      <button id="btnPng" title="Salva PNG">Salva</button>
+    </div>
+    <div class="row">
+      <span class="label">Rapidi</span>
+      <button id="btn1080" title="1080×1350 (IG portrait)">1x</button>
+      <button id="btn2160" title="2160×2700 (2×)">2x</button>
+    </div>
+
+  </div>
+</details>
+
       
     </aside>
 
