@@ -1,276 +1,287 @@
 <!doctype html>
-<html lang="it" data-theme="dark">
+<html lang="it">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>Retro Image Processor – p5.js</title>
+  <title>Dithering</title>
 
-  <!-- p5.js -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { neutral: { 850: '#1f1f1f', 950: '#0a0a0a' } }
+        }
+      }
+    }
+  </script>
+
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('sidebarOverlay');
+
+      function toggleMenu() {
+        sidebar?.classList.toggle('open');
+        overlay?.classList.toggle('active');
+        document.body.classList.toggle('overflow-hidden');
+        setTimeout(() => window.dispatchEvent(new Event('resize')), 300);
+      }
+
+      document.getElementById('menuToggle')?.addEventListener('click', toggleMenu);
+      overlay?.addEventListener('click', toggleMenu);
+    });
+  </script>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
 
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
-  <!-- Topbar -->
-  <header class="topbar">
-    <button id="menuToggle" aria-label="Apri/chiudi pannello">☰</button>
-    <h1>Retro Image Processor</h1>
-    <div class="topbar-right">
-      <button id="themeToggle" aria-label="Tema">🌓</button>
-      <button id="btnSnap" title="Scatta foto (da live/video)" disabled>Scatta foto</button>
+<body class="bg-neutral-950 text-neutral-200 overflow-hidden text-sm font-sans flex flex-col md:flex-row h-screen antialiased selection:bg-neutral-700">
+
+  <div id="sidebarOverlay" class="sidebar-overlay md:hidden"></div>
+
+  <aside id="sidebar" class="w-80 flex-shrink-0 bg-[#171717] border-r border-neutral-800 flex flex-col h-full z-50 custom-scrollbar overflow-y-auto">
+    
+    <div class="md:hidden flex items-center justify-between p-4 border-b border-neutral-800">
+      <h1 class="font-semibold">Impostazioni</h1>
+      <button id="menuToggle" class="p-2 hover:bg-neutral-800 rounded-md"><i data-lucide="x" class="w-5 h-5"></i></button>
     </div>
-  </header>
 
-  <div id="app">
-    <aside id="sidebar" aria-label="Pannello comandi">
-      <h1>Impostazioni</h1>
+    <div class="hidden md:block p-5 border-b border-neutral-800">
+      <h1 class="font-bold text-base">Dithering</h1>
+    </div>
 
-      <details open>
-        <summary>Input</summary>
-        <div class="section">
-          <div class="row">
-            <span class="label">Immagine</span>
-            <input id="fileImg" type="file" accept="image/*">
+    <div class="flex-1 pb-10">
+      <details class="group border-b border-neutral-800" open>
+        <summary class="flex justify-between items-center px-5 py-3.5 cursor-pointer select-none font-medium hover:bg-neutral-800/50 transition-colors">
+          <span>Input</span>
+          <i data-lucide="chevron-down" class="w-4 h-4 text-neutral-500 transition-transform group-open:-rotate-180"></i>
+        </summary>
+        <div class="px-5 pb-4 space-y-4">
+          <div class="space-y-1">
+            <label class="block text-xs text-neutral-500" for="fileImg">Immagine</label>
+            <input id="fileImg" type="file" accept="image/*" class="w-full text-xs file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:font-medium file:bg-neutral-800 file:text-neutral-300 hover:file:bg-neutral-700 cursor-pointer">
+          </div>
+          <div class="space-y-1">
+            <label class="block text-xs text-neutral-500" for="fileVideo">Video</label>
+            <input id="fileVideo" type="file" accept="video/*" class="w-full text-xs file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:font-medium file:bg-neutral-800 file:text-neutral-300 hover:file:bg-neutral-700 cursor-pointer">
           </div>
 
-          <div class="row">
-            <span class="label">Video</span>
-            <input id="fileVideo" type="file" accept="video/*">
-          </div>
-
-          <div class="row">
-            <div class="row">
-              <span class="label">Camera</span>
-              <select id="camSelect" style="max-width: 220px;"></select>
-              <!-- <button id="btnCamRefresh" title="Aggiorna elenco">↻</button>
-              <button id="btnTorch" title="Torcia" disabled>Torcia</button> -->
-            </div>            
-            <button id="btnCamStart" title="Apri fotocamera">Apri</button>
-            <button id="btnCamStop" title="Chiudi fotocamera" disabled>Chiudi</button>
-          </div>
-
-          <!-- <div class="row muted">Su mobile puoi usare anche gli input nativi ↓</div>
-          <div class="row">
-            <input id="capturePhoto" type="file" accept="image/*" capture="environment">
-            <input id="captureVideo" type="file" accept="video/*" capture="environment">
-          </div> --> 
-        </div>
-      </details>
-
-      <details closed>
-        <summary>Inquadratura (4:5)</summary>
-        <div class="section">
-          <div class="row">
-            <span class="label">Zoom</span>
-            <input id="uiZoom" type="range" min="1" max="3" step="0.001" value="1" />
-            <output id="uiZoomVal">1.00×</output>
-          </div>
-          <div class="row">
-            <button id="btnFitW" title="Adatta in larghezza">Fit larg.</button>
-            <button id="btnFitH" title="Adatta in altezza">Fit alt.</button>
-            <button id="btnResetView" title="Centra e zoom minimo">Reset</button>
-          </div>
-          <div class="row">
-            <label><input id="uiOverlay" type="checkbox"> Guida</label>
+          <div class="pt-2 border-t border-neutral-800 space-y-2">
+            <label class="block text-xs text-neutral-500" for="camSelect">Camera Live</label>
+            <select id="camSelect" class="w-full bg-transparent border border-neutral-700 rounded-md py-1.5 px-2 text-sm focus:border-neutral-500 transition-colors"></select>
+            <div class="grid grid-cols-2 gap-2">
+              <button id="btnCamStart" class="flex items-center justify-center gap-2 bg-neutral-200 text-black py-2 rounded-md font-medium hover:bg-white transition-colors"><i data-lucide="video" class="w-4 h-4"></i> Apri</button>
+              <button id="btnCamStop" disabled class="flex items-center justify-center gap-2 border border-neutral-700 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-800 transition-colors"><i data-lucide="video-off" class="w-4 h-4"></i> Chiudi</button>
+            </div>
           </div>
         </div>
       </details>
 
-      <details closed>
-        <summary>Palette</summary>
-        <div class="section">
-          <div class="row">
-            <span class="label">Tipo</span>
-            <select id="uiPalette">
-              <option value="0">CGA 8</option>
-              <option value="1" selected>EGA 16</option>
-              <option value="2">ZX Spectrum</option>
-              <option value="3">Game Boy</option>
-              <option value="4">C64</option>
-              <option value="5">NES 16</option>
-              <option value="6">Apple II 6</option>
-              <option value="7">Amiga 12</option>
-              <option value="8">Teletext 8</option>
-              <option value="9">Solarized 16</option>
-              <option value="10">Vaporwave 8</option>
-              <option value="11">Neon Pop 8</option>
+      <details class="group border-b border-neutral-800">
+        <summary class="flex justify-between items-center px-5 py-3.5 cursor-pointer select-none font-medium hover:bg-neutral-800/50 transition-colors">
+          <span>Inquadratura (4:5)</span>
+          <i data-lucide="chevron-down" class="w-4 h-4 text-neutral-500 transition-transform group-open:-rotate-180"></i>
+        </summary>
+        <div class="px-5 pb-4 space-y-4">
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs"><label for="uiZoom" class="text-neutral-500">Zoom</label><output id="uiZoomVal" class="font-mono">1.00×</output></div>
+            <input id="uiZoom" type="range" min="1" max="3" step="0.001" value="1" class="w-full">
+          </div>
+          <div class="grid grid-cols-3 gap-2">
+            <button id="btnFitW" class="text-xs border border-neutral-700 py-1.5 rounded-md hover:bg-neutral-800 transition-colors">Fit Larg.</button>
+            <button id="btnFitH" class="text-xs border border-neutral-700 py-1.5 rounded-md hover:bg-neutral-800 transition-colors">Fit Alt.</button>
+            <button id="btnResetView" class="text-xs border border-neutral-700 py-1.5 rounded-md hover:bg-neutral-800 transition-colors">Reset</button>
+          </div>
+          <label class="flex items-center gap-2 cursor-pointer pt-1"><input id="uiOverlay" type="checkbox" class="w-4 h-4 accent-neutral-400"> <span>Mostra Guida</span></label>
+        </div>
+      </details>
+
+      <details class="group border-b border-neutral-800" open>
+        <summary class="flex justify-between items-center px-5 py-3.5 cursor-pointer select-none font-medium hover:bg-neutral-800/50 transition-colors">
+          <span>Colore & Palette</span>
+          <i data-lucide="chevron-down" class="w-4 h-4 text-neutral-500 transition-transform group-open:-rotate-180"></i>
+        </summary>
+        <div class="px-5 pb-4 space-y-4">
+          <div class="space-y-1">
+            <label class="block text-xs text-neutral-500" for="uiPalette">Tipo Palette</label>
+            <select id="uiPalette" class="w-full bg-transparent border border-neutral-700 rounded-md py-1.5 px-2 text-sm focus:border-neutral-500 transition-colors">
+              <option value="0">CGA 8</option><option value="1" selected>EGA 16</option>
+              <option value="2">ZX Spectrum</option><option value="3">Game Boy</option>
+              <option value="4">C64</option><option value="5">NES 16</option>
+              <option value="6">Apple II 6</option><option value="7">Amiga 12</option>
+              <option value="8">Teletext 8</option><option value="9">Solarized 16</option>
+              <option value="10">Vaporwave 8</option><option value="11">Neon Pop 8</option>
             </select>
           </div>
-          <div class="row">
-            <span class="label">Contrasto</span>
-            <input id="uiContrast" type="range" min="1.0" max="2.0" step="0.1" value="1.4">
-            <output id="uiContrastVal">1.4</output>
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs"><label for="uiContrast" class="text-neutral-500">Contrasto</label><output id="uiContrastVal" class="font-mono">1.4</output></div>
+            <input id="uiContrast" type="range" min="1.0" max="2.0" step="0.1" value="1.4" class="w-full">
           </div>
         </div>
       </details>
 
-      <details closed>
-        <summary>Dither</summary>
-        <div class="section">
-          <div class="row">
-            <span class="label">Algoritmo</span>
-            <select id="uiDither">
-              <option value="0">Floyd–Steinberg</option>
-              <option value="1">Ordered (Bayer)</option>
-              <option value="2">Random</option>
-              <option value="3">Jarvis</option>
-              <option value="4">Atkinson</option>
-              <option value="5">Albie</option>
+      <details class="group border-b border-neutral-800" open>
+        <summary class="flex justify-between items-center px-5 py-3.5 cursor-pointer select-none font-medium hover:bg-neutral-800/50 transition-colors">
+          <span>Dithering</span>
+          <i data-lucide="chevron-down" class="w-4 h-4 text-neutral-500 transition-transform group-open:-rotate-180"></i>
+        </summary>
+        <div class="px-5 pb-4 space-y-4">
+          <div class="space-y-1">
+            <label class="block text-xs text-neutral-500" for="uiDither">Algoritmo</label>
+            <select id="uiDither" class="w-full bg-transparent border border-neutral-700 rounded-md py-1.5 px-2 text-sm focus:border-neutral-500 transition-colors">
+              <option value="0">Floyd–Steinberg</option><option value="1">Ordered (Bayer)</option>
+              <option value="2">Random</option><option value="3">Jarvis</option>
+              <option value="4">Atkinson</option><option value="5">Albie</option>
               <option value="6">Average</option>
             </select>
           </div>
-          <div class="row">
-            <span class="label">Scala</span>
-            <input id="uiBlock" type="range" min="0.2" max="8" step="0.1" value="1">
-            <output id="uiBlockVal">1</output>
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs"><label for="uiBlock" class="text-neutral-500">Scala Blocco</label><output id="uiBlockVal" class="font-mono">1</output></div>
+            <input id="uiBlock" type="range" min="0.2" max="8" step="0.1" value="1" class="w-full">
           </div>
-          <div class="row">
-            <label><input id="uiTemporal" type="checkbox"> Temporale</label>
+          <label class="flex items-center gap-2 cursor-pointer pt-1"><input id="uiTemporal" type="checkbox" class="w-4 h-4 accent-neutral-400"> <span>Dither Temporale (Rumore)</span></label>
+        </div>
+      </details>
+
+      <details class="group border-b border-neutral-800">
+        <summary class="flex justify-between items-center px-5 py-3.5 cursor-pointer select-none font-medium hover:bg-neutral-800/50 transition-colors">
+          <span>Effetti CRT</span>
+          <i data-lucide="chevron-down" class="w-4 h-4 text-neutral-500 transition-transform group-open:-rotate-180"></i>
+        </summary>
+        <div class="px-5 pb-4 space-y-4">
+          <label class="flex items-center gap-2 cursor-pointer"><input id="uiScanlines" type="checkbox" class="w-4 h-4 accent-neutral-400"> <span>Abilita Scanlines</span></label>
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs"><label for="uiScanInt" class="text-neutral-500">Intensità Scanlines</label><output id="uiScanIntVal" class="font-mono">0.7</output></div>
+            <input id="uiScanInt" type="range" min="0.1" max="1.0" step="0.1" value="0.7" class="w-full">
+          </div>
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs"><label for="uiBleed" class="text-neutral-500">Color Bleed</label><output id="uiBleedVal" class="font-mono">0.30</output></div>
+            <input id="uiBleed" type="range" min="0" max="0.5" step="0.01" value="0.3" class="w-full">
           </div>
         </div>
       </details>
 
-      <details closed>
-        <summary>CRT</summary>
-        <div class="section">
-          <div class="row">
-            <label><input id="uiScanlines" type="checkbox"> Scanlines</label>
+      <details class="group border-b border-neutral-800">
+        <summary class="flex justify-between items-center px-5 py-3.5 cursor-pointer select-none font-medium hover:bg-neutral-800/50 transition-colors">
+          <span>Registrazione Video</span>
+          <i data-lucide="chevron-down" class="w-4 h-4 text-neutral-500 transition-transform group-open:-rotate-180"></i>
+        </summary>
+        <div class="px-5 pb-4 space-y-4">
+          
+          <div class="grid grid-cols-2 gap-2">
+            <button id="btnRec" class="flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white py-2 rounded-md transition-colors"><i data-lucide="circle-dot" class="w-4 h-4"></i> REC</button>
+            <button id="btnStopRec" disabled class="flex items-center justify-center gap-2 border border-neutral-700 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-800 transition-colors"><i data-lucide="square" class="w-4 h-4"></i> Stop</button>
           </div>
-          <div class="row">
-            <span class="label">Intensità</span>
-            <input id="uiScanInt" type="range" min="0.1" max="1.0" step="0.1" value="0.7">
-            <output id="uiScanIntVal">0.7</output>
-          </div>
-          <div class="row">
-            <span class="label">Bleed</span>
-            <input id="uiBleed" type="range" min="0" max="0.5" step="0.01" value="0.3">
-            <output id="uiBleedVal">0.30</output>
-          </div>
-        </div>
-      </details>
 
-      <details closed>
-        <summary>Registrazione</summary>
-        <div class="section">
-          <div class="row">
-            <span class="label">Controlli</span>
-            <button id="btnRec" title="Avvia registrazione">REC</button>
-            <button id="btnStopRec" title="Ferma registrazione" disabled>Stop</button>
-            <span id="recDot" style="margin-left:.5rem;">●</span>
-          </div>
-          <div class="row">
-            <label><input id="recMic" type="checkbox"> Audio dal microfono</label>
-            <div class="row">
-              <span class="label">Microfono</span>
-              <select id="micSelect" style="max-width: 240px;"></select>
+          <div class="flex justify-between items-center border border-neutral-800 bg-neutral-900 rounded-md px-3 py-2">
+            <div class="flex items-center gap-2">
+              <span id="recDot" class="text-red-500 font-bold opacity-25">●</span>
+              <span class="text-xs text-neutral-400">Timer</span>
             </div>
-            <div class="row">
-              <span class="label">Timer</span>
-              <span id="recTimer">00:00</span>
+            <span id="recTimer" class="font-mono text-sm">00:00</span>
+          </div>
+
+          <label class="flex items-center gap-2 cursor-pointer"><input id="recMic" type="checkbox" class="w-4 h-4 accent-neutral-400"> <span>Audio dal microfono</span></label>
+          <div class="space-y-1">
+            <label class="block text-xs text-neutral-500" for="micSelect">Seleziona Microfono</label>
+            <select id="micSelect" class="w-full bg-transparent border border-neutral-700 rounded-md py-1.5 px-2 text-sm focus:border-neutral-500 transition-colors"></select>
+          </div>
+          
+          <div class="flex items-center justify-between">
+            <label class="text-xs text-neutral-500" for="recFps">FPS Video</label>
+            <select id="recFps" class="bg-transparent border border-neutral-700 rounded-md py-1 px-2 text-xs focus:border-neutral-500"><option value="24">24</option><option value="30" selected>30</option><option value="60">60</option></select>
+          </div>
+
+          <a id="recDownload" style="display:none;" class="block w-full text-center text-xs py-2 mt-2 bg-neutral-800 hover:bg-neutral-700 rounded-md transition-colors" download="retro_recording.webm">Scarica ultima registrazione</a>
+        </div>
+      </details>
+
+      <details class="group border-b border-neutral-800" open>
+        <summary class="flex justify-between items-center px-5 py-3.5 cursor-pointer select-none font-medium hover:bg-neutral-800/50 transition-colors">
+          <span>Export Immagini</span>
+          <i data-lucide="chevron-down" class="w-4 h-4 text-neutral-500 transition-transform group-open:-rotate-180"></i>
+        </summary>
+        <div class="px-5 pb-4 space-y-4">
+          <div class="flex items-center justify-between">
+            <label for="pngScale" class="text-xs text-neutral-500">Scala PNG</label>
+            <select id="pngScale" class="bg-transparent border border-neutral-700 rounded-md py-1 px-2 text-xs focus:border-neutral-500"><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option></select>
+          </div>
+          <button id="btnPng" class="w-full flex items-center justify-center gap-2 bg-neutral-200 text-black py-2 rounded-md font-medium hover:bg-white transition-colors"><i data-lucide="image" class="w-4 h-4"></i> Salva PNG</button>
+          
+          <div class="pt-2">
+            <div class="text-[11px] text-neutral-500 mb-2 uppercase tracking-wider">Export Rapidi</div>
+            <div class="grid grid-cols-2 gap-2">
+              <button id="btn1080" class="flex flex-col items-center justify-center gap-1 bg-neutral-800 hover:bg-neutral-700 py-2 rounded-md transition-colors text-xs text-neutral-300"><span>1080×1350</span><span class="text-[10px] text-neutral-500">IG Portrait</span></button>
+              <button id="btn2160" class="flex flex-col items-center justify-center gap-1 bg-neutral-800 hover:bg-neutral-700 py-2 rounded-md transition-colors text-xs text-neutral-300"><span>2160×2700</span><span class="text-[10px] text-neutral-500">Alta Qualità</span></button>
             </div>
-            
-            <span class="muted">Il video registrato è il canvas già processato.</span>
-          </div>
-          <div class="row">
-            <span class="label">FPS</span>
-            <select id="recFps">
-              <option value="30" selected>30</option>
-              <option value="24">24</option>
-              <option value="60">60</option>
-            </select>
-            <button id="recDownload" class="muted" style="display:none;" download="retro_recording.webm">Scarica ultima registrazione</button>
           </div>
         </div>
       </details>
 
-      <details closed>
-        <summary>Prestazioni</summary>
-        <div class="section">
-          <div class="row">
-            <span class="label">Qualità live</span>
-            <input id="liveQuality" type="range" min="0.5" max="1.0" step="0.05" value="0.85">
-            <output id="liveQualityVal">0.85</output>
+      <details class="group">
+        <summary class="flex justify-between items-center px-5 py-3.5 cursor-pointer select-none font-medium hover:bg-neutral-800/50 transition-colors">
+          <span>Prestazioni & Sistema</span>
+          <i data-lucide="chevron-down" class="w-4 h-4 text-neutral-500 transition-transform group-open:-rotate-180"></i>
+        </summary>
+        <div class="px-5 pb-4 space-y-4">
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs"><label for="liveQuality" class="text-neutral-500">Qualità Live</label><output id="liveQualityVal" class="font-mono">0.85</output></div>
+            <input id="liveQuality" type="range" min="0.5" max="1.0" step="0.05" value="0.85" class="w-full">
           </div>
-          <div class="row">
-            <span class="label">Elabora ogni</span>
-            <select id="procEvery">
-              <option value="1">1 frame</option>
-              <option value="2" selected>2 frame</option>
-              <option value="3">3 frame</option>
-              <option value="4">4 frame</option>
-            </select>
+          
+          <div class="flex items-center justify-between">
+            <label class="text-xs text-neutral-500" for="procEvery">Elabora ogni</label>
+            <select id="procEvery" class="bg-transparent border border-neutral-700 rounded-md py-1 px-2 text-xs focus:border-neutral-500"><option value="1">1 frame</option><option value="2" selected>2 frame</option><option value="3">3 frame</option><option value="4">4 frame</option></select>
           </div>
-          <div class="row">
-            <span class="label">FPS live</span>
-            <select id="liveFps">
-              <option value="24">24</option>
-              <option value="30" selected>30</option>
-              <option value="60">60</option>
-            </select>
+
+          <div class="flex items-center justify-between">
+            <label class="text-xs text-neutral-500" for="liveFps">FPS Live</label>
+            <select id="liveFps" class="bg-transparent border border-neutral-700 rounded-md py-1 px-2 text-xs focus:border-neutral-500"><option value="24">24</option><option value="30" selected>30</option><option value="60">60</option></select>
           </div>
-          <div class="row">
-            <label><input id="useWorker" type="checkbox"> Usa Web Worker (beta)</label>
+
+          <label class="flex items-center gap-2 cursor-pointer pt-1"><input id="useWorker" type="checkbox" class="w-4 h-4 accent-neutral-400"> <span>Usa Web Worker (beta)</span></label>
+          <label class="flex items-center gap-2 cursor-pointer"><input id="exportHQ" type="checkbox" checked class="w-4 h-4 accent-neutral-400"> <span>Export PNG a qualità piena</span></label>
+
+          <div id="perfInfo" class="mt-4 p-2 bg-neutral-900 border border-neutral-800 rounded-md text-[11px] font-mono text-neutral-500 text-center">
+            proc: — ms • worker: —
           </div>
-          <div class="row">
-            <label><input id="exportHQ" type="checkbox" checked> Export qualità piena</label>
-          </div>
-          <div class="row muted" id="perfInfo">proc: — ms • worker: —</div>
         </div>
       </details>
-
-
-      <!-- Export (unificato) -->
-<details closed>
-  <summary>Export</summary>
-  <div class="section">
-
-    <!-- IMMAGINI -->
-    <div class="subhead">📷 Immagini</div>
-    <div class="row">
-      <span class="label">PNG (scala)</span>
-      <select id="pngScale">
-        <option value="1">1×</option>
-        <option value="2">2×</option>
-        <option value="4">4×</option>
-      </select>
-      <button id="btnPng" title="Salva PNG">Salva</button>
     </div>
-    <div class="row">
-      <span class="label">Rapidi</span>
-      <button id="btn1080" title="1080×1350 (IG portrait)">1x</button>
-      <button id="btn2160" title="2160×2700 (2×)">2x</button>
-    </div>
+  </aside>
 
-  </div>
-</details>
-
+  <main id="stage" class="flex-1 flex flex-col min-w-0 bg-[#0a0a0a] relative">
+    
+    <div id="stageToolbar" class="h-14 border-b border-neutral-800 bg-[#171717] flex items-center justify-between px-4 z-10">
       
-    </aside>
+      <button id="menuToggleMain" class="md:hidden p-2 -ml-2 hover:bg-neutral-800 rounded-md" onclick="document.getElementById('menuToggle').click()">
+        <i data-lucide="menu" class="w-5 h-5"></i>
+      </button>
 
-    <main id="stage">
-      <div id="stageToolbar">
-        <div class="btnbar">
-          <span id="infoSource">Sorgente: —</span>
+      <div class="flex-1 flex items-center justify-between text-xs text-neutral-500 font-mono">
+        <div class="hidden md:flex items-center gap-4">
+          <span class="flex items-center gap-1.5"><i data-lucide="monitor-play" class="w-3.5 h-3.5"></i> <span id="infoSource">Sorgente: —</span></span>
         </div>
-        <div class="right"><span id="infoFps">FPS: —</span></div>
+        
+        <div class="flex items-center gap-4 ml-auto">
+          <span class="flex items-center gap-1.5"><i data-lucide="activity" class="w-3.5 h-3.5"></i> <span id="infoFps">FPS: —</span></span>
+          <div class="w-px h-4 bg-neutral-700 hidden md:block"></div>
+          <button id="btnSnap" disabled class="flex items-center gap-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 py-1.5 px-3 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            <i data-lucide="camera" class="w-4 h-4"></i> <span class="hidden md:inline">Scatta Foto</span>
+          </button>
+        </div>
       </div>
-      <div id="canvasWrap" aria-label="Area canvas 4:5"></div>
-    </main>
-  </div>
+    </div>
 
-  <!-- Toggle sidebar su mobile -->
-  <script>
-    (function () {
-      const btn = document.getElementById('menuToggle');
-      const sidebar = document.getElementById('sidebar');
-      if (!btn || !sidebar) return;
-      btn.addEventListener('click', () => {
-        sidebar.classList.toggle('open');
-        document.body.classList.toggle('no-scroll');
-      });
-    })();
-  </script>
+    <div id="canvasWrap" class="flex-1 w-full h-full p-4 md:p-8 flex items-center justify-center overflow-hidden" aria-label="Area canvas">
+      </div>
+  </main>
 
-  <script src="sketch.js" defer></script>
+  <script>lucide.createIcons();</script>
+  <script src="sketch.js"></script>
 </body>
 </html>
